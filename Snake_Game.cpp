@@ -236,14 +236,24 @@ void Snake_Game::postaviVoce(int red, int stupac)
 
 void Snake_Game::izvrsiPostavljanje(sf::Vector2i pozicija_misa)
 {
-    int velicina = 20;
+    const int velicina = 20;
+    const int offset_y = 40;
 
-    int stupac = pozicija_misa.x / velicina;
-    int red = pozicija_misa.y / velicina;
+    int x = pozicija_misa.x;
+    int y = pozicija_misa.y;
+    y -= offset_y;
+
+    if (y < 0)
+        return;
+
+    int stupac = x / velicina;
+    int red = y / velicina;
+
+    if (red < 0 || red >= REDAK) return;
+    if (stupac < 0 || stupac >= STUPAC) return;
 
     postaviVoce(red, stupac);
 }
-
 void Snake_Game::izracunajPut()
 {
     if (postavljanje_voca)
