@@ -27,6 +27,8 @@ private:
 
     int faza;
 
+    bool raste;
+
     int prvo_voce_index;
     int drugo_voce_index;
 

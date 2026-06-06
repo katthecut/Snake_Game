@@ -21,6 +21,8 @@ Snake_Game::Snake_Game()
 
     faza = 0;
 
+    raste = false;
+
     generirajZmiju();
     generirajZidove();
     generirajA_i_B();
@@ -28,7 +30,6 @@ Snake_Game::Snake_Game()
 
     izracunajPut();
 }
-
 //zmija je na pocetku uvijek duljine 3
 void Snake_Game::generirajZmiju()
 {
@@ -329,11 +330,20 @@ void Snake_Game::update()
 
     zmija.insert(zmija.begin(), nova_glava);
 
-    sf::Vector2i stari_rep = zmija.back();
-    zmija.pop_back();
+    //zmija ne raste i rep se brise
+    if (!raste)
+    {
+        sf::Vector2i stari_rep = zmija.back();
+        zmija.pop_back();
 
-    if (mapa[stari_rep.x][stari_rep.y] != ZID)
-        mapa[stari_rep.x][stari_rep.y] = PRAZNO;
+        if (mapa[stari_rep.x][stari_rep.y] != ZID)
+            mapa[stari_rep.x][stari_rep.y] = PRAZNO;
+    }
+    else
+    {
+        //zmija raste pa se rep ostavlja
+        raste = false;
+    }
 
     if (mapa[nova_glava.x][nova_glava.y] == VOCE)
     {
@@ -344,6 +354,8 @@ void Snake_Game::update()
 
         faza++;
 
+        raste = true; //zmija raste za 1 blok
+
         mapa[nova_glava.x][nova_glava.y] = PRAZNO;
 
         put.clear();
@@ -353,7 +365,6 @@ void Snake_Game::update()
 
     if (mapa[nova_glava.x][nova_glava.y] == B)
     {
-
     }
 }
 
