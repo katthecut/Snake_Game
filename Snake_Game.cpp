@@ -1,94 +1,69 @@
+#include <SFML/Graphics.hpp>
 #include "Snake_Game.h"
 #include <queue>
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
 
-bool Snake_Game::izvan(int redak, int stupac)
+//provjera izlaska iz mape
+bool Snake_Game::izvan(int red, int stupac)
 {
-    return (redak < 0 || redak >= REDAK || stupac < 0 || stupac >= STUPAC);
+    return (red < 0 || red >= REDAK || stupac < 0 || stupac >= STUPAC);
 }
 
 Snake_Game::Snake_Game()
 {
     srand((unsigned)time(0));
 
-    for (int i = 0; i < REDAK; i++)
-        for (int j = 0; j < STUPAC; j++)
-            mapa[i][j] = PRAZNO;
+    for (int red = 0; red < REDAK; red++)
+        for (int stupac = 0; stupac < STUPAC; stupac++)
+            mapa[red][stupac] = PRAZNO;
 
-    a_redak = 0;
-    a_stupac = 0;
+    faza = 0;
 
-    b_redak = 10;
-    b_stupac = 20;
-
-    mapa[a_redak][a_stupac] = A;
-    mapa[b_redak][b_stupac] = B;
-
+    generirajZmiju();
     generirajZidove();
-
-    zmija.clear();
-
-    zmija.push_back(sf::Vector2i(0, 2));
-    zmija.push_back(sf::Vector2i(0, 1));
-    zmija.push_back(sf::Vector2i(0, 0));
-
+    generirajA_i_B();
     generirajVoce();
-
-    idi_na_voce = true;
 
     izracunajPut();
 }
 
-void Snake_Game::generirajVoce()
+//zmija je na pocetku uvijek duljine 3
+void Snake_Game::generirajZmiju()
 {
-    voce.clear();
+    zmija.clear();
 
-    while (voce.size() < 2)
+    while (true)
     {
-        int redak = rand() % REDAK;
-        int stupac = rand() % STUPAC;
+        int red_glava = rand() % REDAK;
+        int stupac_glava = rand() % STUPAC;
 
-        if (mapa[redak][stupac] == ZID)
-            continue;
+        int smjer = rand() % 4;
 
-        if (redak == a_redak && stupac == a_stupac)
-            continue;
+        int pomak_red = 0;
+        int pomak_stupac = 0;
 
-        if (redak == b_redak && stupac == b_stupac)
-            continue;
+        if (smjer == 0) pomak_red = 1;
+        if (smjer == 1) pomak_red = -1;
+        if (smjer == 2) pomak_stupac = 1;
+        if (smjer == 3) pomak_stupac = -1;
 
-        bool postoji = false;
+        int red_drugi = red_glava + pomak_red;
+        int stupac_drugi = stupac_glava + pomak_stupac;
 
-        for (auto& v : voce)
-        {
-            if (v.x == redak && v.y == stupac)
-            {
-                postoji = true;
-                break;
-            }
-        }
+        int red_treci = red_glava + 2 * pomak_red;
+        int stupac_treci = stupac_glava + 2 * pomak_stupac;
 
-        if (postoji)
-            continue;
+        if (izvan(red_glava, stupac_glava)) continue;
+        if (izvan(red_drugi, stupac_drugi)) continue;
+        if (izvan(red_treci, stupac_treci)) continue;
 
-        voce.push_back(sf::Vector2i(redak, stupac));
-        mapa[redak][stupac] = VOCE;
-    }
-}
+        zmija.push_back({ red_glava, stupac_glava });
+        zmija.push_back({ red_drugi, stupac_drugi });
+        zmija.push_back({ red_treci, stupac_treci });
 
-void Snake_Game::odrediCilj(int& cilj_redak, int& cilj_stupac)
-{
-    if (idi_na_voce && !voce.empty())
-    {
-        cilj_redak = voce[0].x;
-        cilj_stupac = voce[0].y;
-    }
-    else
-    {
-        cilj_redak = b_redak;
-        cilj_stupac = b_stupac;
+        break;
     }
 }
 
@@ -189,102 +164,156 @@ void Snake_Game::generirajZidove()
     }
 }
 
+//A start, B cilj
+void Snake_Game::generirajA_i_B()
+{
+    a_red = zmija.front().x;
+    a_stupac = zmija.front().y;
+
+    while (true)
+    {
+        b_red = rand() % REDAK;
+        b_stupac = rand() % STUPAC;
+
+        if (b_red == a_red && b_stupac == a_stupac)
+            continue;
+
+        break;
+    }
+
+    mapa[b_red][b_stupac] = B;
+}
+
+// 2 vocke samo na pocetku
+void Snake_Game::generirajVoce()
+{
+    voce.clear();
+
+    while (voce.size() < 2)
+    {
+        int red = rand() % REDAK;
+        int stupac = rand() % STUPAC;
+
+        if (mapa[red][stupac] != PRAZNO)
+            continue;
+
+        voce.push_back({ red, stupac });
+        mapa[red][stupac] = VOCE;
+    }
+}
+
 void Snake_Game::izracunajPut()
 {
     struct Node
     {
-        int redak;
+        int red;
         int stupac;
-        int udaljenost;
-
-        bool operator>(const Node& o) const
-        {
-            return udaljenost > o.udaljenost;
-        }
     };
 
-    const int BESKONACNO = 1000000;
-
-    int distance[REDAK][STUPAC];
+    bool posjeceno_polje[REDAK][STUPAC] = { false };
     sf::Vector2i prethodni[REDAK][STUPAC];
-    bool visited[REDAK][STUPAC] = { false };
 
-    for (int redak = 0; redak < REDAK; redak++)
+    std::queue<Node> red_cekanja;
+
+    int udaljenost[REDAK][STUPAC];
+
+    const int max_broj_koraka = 1000000;
+
+    for (int red = 0; red < REDAK; red++)
+    {
         for (int stupac = 0; stupac < STUPAC; stupac++)
         {
-            distance[redak][stupac] = BESKONACNO;
-            prethodni[redak][stupac] = sf::Vector2i(-1, -1);
+            udaljenost[red][stupac] = max_broj_koraka;
+            prethodni[red][stupac] = sf::Vector2i(-1, -1);
         }
+    }
 
-    std::priority_queue<Node, std::vector<Node>, std::greater<Node>> pq;
+    int red_pocetak = zmija.front().x;
+    int stupac_pocetak = zmija.front().y;
 
-    int cilj_redak, cilj_stupac;
-    odrediCilj(cilj_redak, cilj_stupac);
+    int red_cilj, stupac_cilj;
+    odrediCilj(red_cilj, stupac_cilj);
 
-    int start_redak = zmija.front().x;
-    int start_stupac = zmija.front().y;
+    udaljenost[red_pocetak][stupac_pocetak] = 0;
+    red_cekanja.push({ red_pocetak, stupac_pocetak });
 
-    distance[start_redak][start_stupac] = 0;
-    pq.push({ start_redak, start_stupac, 0 });
-
-    int pomak_redak[4] = { -1, 1, 0, 0 };
+    int pomak_red[4] = { -1, 1, 0, 0 };
     int pomak_stupac[4] = { 0, 0, -1, 1 };
 
-    while (!pq.empty())
+    while (!red_cekanja.empty())
     {
-        Node trenutni = pq.top();
-        pq.pop();
+        Node trenutni_node = red_cekanja.front();
+        red_cekanja.pop();
 
-        if (visited[trenutni.redak][trenutni.stupac])
+        if (posjeceno_polje[trenutni_node.red][trenutni_node.stupac])
             continue;
 
-        visited[trenutni.redak][trenutni.stupac] = true;
+        posjeceno_polje[trenutni_node.red][trenutni_node.stupac] = true;
 
         for (int i = 0; i < 4; i++)
         {
-            int novi_redak = trenutni.redak + pomak_redak[i];
-            int novi_stupac = trenutni.stupac + pomak_stupac[i];
+            int novi_red = trenutni_node.red + pomak_red[i];
+            int novi_stupac = trenutni_node.stupac + pomak_stupac[i];
 
-            if (izvan(novi_redak, novi_stupac))
+            if (izvan(novi_red, novi_stupac))
                 continue;
 
-            if (mapa[novi_redak][novi_stupac] == ZID)
+            if (mapa[novi_red][novi_stupac] == ZID)
                 continue;
 
-            if (distance[novi_redak][novi_stupac] >
-                distance[trenutni.redak][trenutni.stupac] + 1)
+            if (udaljenost[novi_red][novi_stupac] >
+                udaljenost[trenutni_node.red][trenutni_node.stupac] + 1)
             {
-                distance[novi_redak][novi_stupac] =
-                    distance[trenutni.redak][trenutni.stupac] + 1;
+                udaljenost[novi_red][novi_stupac] =
+                    udaljenost[trenutni_node.red][trenutni_node.stupac] + 1;
 
-                prethodni[novi_redak][novi_stupac] =
-                    sf::Vector2i(trenutni.redak, trenutni.stupac);
+                prethodni[novi_red][novi_stupac] =
+                    sf::Vector2i(trenutni_node.red, trenutni_node.stupac);
 
-                pq.push({ novi_redak, novi_stupac, distance[novi_redak][novi_stupac] });
+                red_cekanja.push({ novi_red, novi_stupac });
             }
         }
     }
 
-    if (distance[cilj_redak][cilj_stupac] == BESKONACNO)
-    {
-        put.clear();
-        return;
-    }
-
     put.clear();
 
-    sf::Vector2i trenutni(cilj_redak, cilj_stupac);
-
-    if (prethodni[cilj_redak][cilj_stupac].x == -1)
+    if (udaljenost[red_cilj][stupac_cilj] == max_broj_koraka)
         return;
 
-    while (trenutni.x != -1)
+    sf::Vector2i trenutni(red_cilj, stupac_cilj);
+
+    while (!(trenutni.x == red_pocetak && trenutni.y == stupac_pocetak))
     {
         put.push_back(trenutni);
-        trenutni = prethodni[trenutni.x][trenutni.y];
+
+        sf::Vector2i sljedeci = prethodni[trenutni.x][trenutni.y];
+
+        if (sljedeci.x == -1)
+            break;
+
+        trenutni = sljedeci;
     }
 
     std::reverse(put.begin(), put.end());
+}
+
+void Snake_Game::odrediCilj(int& red, int& stupac)
+{
+    if (faza == 0)
+    {
+        red = voce[0].x;
+        stupac = voce[0].y;
+    }
+    else if (faza == 1)
+    {
+        red = voce[1].x;
+        stupac = voce[1].y;
+    }
+    else
+    {
+        red = b_red;
+        stupac = b_stupac;
+    }
 }
 
 void Snake_Game::update()
@@ -295,32 +324,37 @@ void Snake_Game::update()
         return;
     }
 
-    sf::Vector2i stara_repna_pozicija = zmija.back();
-    mapa[stara_repna_pozicija.x][stara_repna_pozicija.y] = PRAZNO;
-
     sf::Vector2i nova_glava = put.front();
     put.erase(put.begin());
 
     zmija.insert(zmija.begin(), nova_glava);
+
+    sf::Vector2i stari_rep = zmija.back();
     zmija.pop_back();
+
+    if (mapa[stari_rep.x][stari_rep.y] != ZID)
+        mapa[stari_rep.x][stari_rep.y] = PRAZNO;
 
     if (mapa[nova_glava.x][nova_glava.y] == VOCE)
     {
-        idi_na_voce = true;
-        generirajVoce();
+        if (faza == 0)
+            prvo_voce_index = 0;
+        else if (faza == 1)
+            prvo_voce_index = 1;
+
+        faza++;
+
+        mapa[nova_glava.x][nova_glava.y] = PRAZNO;
+
+        put.clear();
+        izracunajPut();
+        return;
     }
 
-    for (int redak = 0; redak < REDAK; redak++)
-        for (int stupac = 0; stupac < STUPAC; stupac++)
-        {
-            if (mapa[redak][stupac] == ZID) continue;
-            if (mapa[redak][stupac] == VOCE) continue;
-            if (mapa[redak][stupac] == A || mapa[redak][stupac] == B) continue;
-            mapa[redak][stupac] = PRAZNO;
-        }
+    if (mapa[nova_glava.x][nova_glava.y] == B)
+    {
 
-    for (auto& dio : zmija)
-        mapa[dio.x][dio.y] = A;
+    }
 }
 
 void Snake_Game::iscrtaj(sf::RenderWindow& window)
@@ -328,47 +362,51 @@ void Snake_Game::iscrtaj(sf::RenderWindow& window)
     int velicina = 20;
 
     sf::RectangleShape celija(sf::Vector2f(20.f, 20.f));
-    celija.setOutlineThickness(0.f);
 
-    for (int redak = 0; redak < REDAK; redak++)
+    for (int red = 0; red < REDAK; red++)
+    {
         for (int stupac = 0; stupac < STUPAC; stupac++)
         {
-            sf::Color boja;
-
-            if (mapa[redak][stupac] == PRAZNO)
-                continue;
-
-            if (mapa[redak][stupac] == ZID)
-                boja = sf::Color(80, 94, 82);
-
-            else if (redak == a_redak && stupac == a_stupac)
-                boja = sf::Color(0, 255, 0);
-
-            else if (redak == b_redak && stupac == b_stupac)
-                boja = sf::Color(173, 24, 35);
-
-            else if (mapa[redak][stupac] == VOCE)
-                boja = sf::Color(160, 60, 200);
-
-            else
-                continue;
-
-            celija.setFillColor(boja);
-            celija.setPosition(stupac * velicina, redak * velicina);
+            celija.setFillColor(sf::Color(195, 255, 90));
+            celija.setPosition(stupac * velicina, red * velicina);
             window.draw(celija);
-        }
 
+            if (mapa[red][stupac] == ZID)
+            {
+                celija.setFillColor(sf::Color(24, 51, 0));
+                window.draw(celija);
+            }
+
+            if (mapa[red][stupac] == VOCE)
+            {
+                celija.setFillColor(sf::Color(233, 51, 51));
+                window.draw(celija);
+            }
+
+            if (mapa[red][stupac] == B)
+            {
+                celija.setFillColor(sf::Color(112, 24, 24));
+                window.draw(celija);
+            }
+        }
+    }
+
+    // ZMIJA (zadnji sloj da prekriva sve)
     for (int i = 0; i < zmija.size(); i++)
     {
-        celija.setFillColor(i % 2 == 0 ?
-            sf::Color(120, 255, 120) :
-            sf::Color(40, 180, 40));
+        if (i == 0)
+        {
+            celija.setFillColor(sf::Color(0, 127, 0)); // glava
+        }
+        else
+        {
+            if (i % 2 == 1)
+                celija.setFillColor(sf::Color(70, 204, 97)); // tamnp zelena
+            else
+                celija.setFillColor(sf::Color(0, 127, 0)); // svijetlo zelena
+        }
 
-        celija.setPosition(
-            zmija[i].y * velicina,
-            zmija[i].x * velicina
-        );
-
+        celija.setPosition(zmija[i].y * velicina, zmija[i].x * velicina);
         window.draw(celija);
     }
 }

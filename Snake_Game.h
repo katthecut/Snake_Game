@@ -19,19 +19,30 @@ private:
 
     Polje mapa[REDAK][STUPAC];
 
-    int a_redak, a_stupac;
-    int b_redak, b_stupac;
+    int a_red;
+    int a_stupac;
+
+    int b_red;
+    int b_stupac;
+
+    int faza;
+
+    int prvo_voce_index;
+    int drugo_voce_index;
 
     std::vector<sf::Vector2i> put;
     std::vector<sf::Vector2i> zmija;
     std::vector<sf::Vector2i> voce;
 
-    bool izvan(int r, int s);
-    void izracunajPut();
+    bool izvan(int red, int stupac);
+
+    void generirajZmiju();
     void generirajZidove();
+    void generirajA_i_B();
     void generirajVoce();
-    bool idi_na_voce;
-    void odrediCilj(int& cilj_redak, int& cilj_stupac);
+    void izracunajPut();
+
+    void odrediCilj(int& red, int& stupac);
 
 public:
     Snake_Game();

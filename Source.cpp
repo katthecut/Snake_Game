@@ -25,10 +25,8 @@ int main()
             clock.restart();
         }
 
-        window.clear(sf::Color(123, 179, 105));
-
+        window.clear();
         igra.iscrtaj(window);
-
         window.display();
     }
 
