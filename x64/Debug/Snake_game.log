@@ -1,0 +1,6 @@
+﻿  Snake_Game.cpp
+C:\Users\katia\Desktop\Snake_Game\Snake_game\Snake_Game.cpp(357,57): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\katia\Desktop\Snake_Game\Snake_game\Snake_Game.cpp(357,39): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\katia\Desktop\Snake_Game\Snake_game\Snake_Game.cpp(369,24): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+C:\Users\katia\Desktop\Snake_Game\Snake_game\Snake_Game.cpp(368,24): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+  Snake_game.vcxproj -> C:\Users\katia\Desktop\Snake_Game\x64\Debug\Snake_game.exe
