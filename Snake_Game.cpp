@@ -520,13 +520,23 @@ void Snake_Game::iscrtaj(sf::RenderWindow& window)
 
     for (int i = 0; i < zmija.size(); i++)
     {
-        celija.setFillColor(i == 0 ? sf::Color(0, 127, 0)
-            : sf::Color(70, 204, 97));
-
         celija.setPosition(
             zmija[i].y * velicina,
             zmija[i].x * velicina + offset_y
         );
+
+        if (i == 0)
+        {
+            celija.setFillColor(sf::Color(0, 127, 0));
+        }
+        else if (i % 2 == 0)
+        {
+            celija.setFillColor(sf::Color(0, 127, 0));
+        }
+        else
+        {
+            celija.setFillColor(sf::Color(70, 204, 97));
+        }
 
         window.draw(celija);
     }
