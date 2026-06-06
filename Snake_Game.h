@@ -8,6 +8,8 @@ private:
     static const int REDAK = 20;
     static const int STUPAC = 40;
 
+    sf::Font font;
+
     enum Polje
     {
         PRAZNO,
@@ -27,10 +29,10 @@ private:
 
     int faza;
 
-    bool raste;
-
     int prvo_voce_index;
     int drugo_voce_index;
+
+    bool bool_raste;
 
     std::vector<sf::Vector2i> put;
     std::vector<sf::Vector2i> zmija;
@@ -41,7 +43,7 @@ private:
     void generirajZmiju();
     void generirajZidove();
     void generirajA_i_B();
-    void generirajVoce();
+
     void izracunajPut();
 
     void odrediCilj(int& red, int& stupac);
@@ -51,4 +53,10 @@ public:
 
     void update();
     void iscrtaj(sf::RenderWindow& window);
+
+    void postaviVoce(int red, int stupac);
+    bool postavljanje_voca;
+    int broj_postavljenog_voca;
+
+    void izvrsiPostavljanje(sf::Vector2i pozicija_misa);
 };
